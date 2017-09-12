@@ -9,10 +9,13 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from model import Net
 from data import get_training_set, get_test_set
+from os.path import exists, join
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch Super Res Example')
 parser.add_argument('--upscale_factor', type=int, required=True, help="super resolution upscale factor")
+parser.add_argument('--trainPath', type=str, required=True, help="path to directory containing images for training")
+parser.add_argument('--testPath', type=str, required=False, help="path to directory containing images for testing")
 parser.add_argument('--batchSize', type=int, default=64, help='training batch size')
 parser.add_argument('--testBatchSize', type=int, default=10, help='testing batch size')
 parser.add_argument('--nEpochs', type=int, default=2, help='number of epochs to train for')
@@ -20,6 +23,7 @@ parser.add_argument('--lr', type=float, default=0.01, help='Learning Rate. Defau
 parser.add_argument('--cuda', action='store_true', help='use cuda?')
 parser.add_argument('--threads', type=int, default=4, help='number of threads for data loader to use')
 parser.add_argument('--seed', type=int, default=123, help='random seed to use. Default=123')
+parser.add_argument('--outputPath', type=str, required=False, help="path to output model checkpoints")
 opt = parser.parse_args()
 
 print(opt)
@@ -28,13 +32,23 @@ cuda = opt.cuda
 if cuda and not torch.cuda.is_available():
     raise Exception("No GPU found, please run without --cuda")
 
+
+if opt.trainPath and not exists(opt.trainPath):
+    raise Exception("Train directory (--trainPath) not found")
+
+if opt.testPath and not exists(opt.testPath):
+    raise Exception("Test directory (--testPath) not found")
+
+if opt.outputPath and not exists(opt.outputPath):
+    raise Exception("Output directory (--outputPath) not found")
+
 torch.manual_seed(opt.seed)
 if cuda:
     torch.cuda.manual_seed(opt.seed)
 
 print('===> Loading datasets')
-train_set = get_training_set(opt.upscale_factor)
-test_set = get_test_set(opt.upscale_factor)
+train_set = get_training_set(opt.upscale_factor, opt.trainPath)
+test_set = get_test_set(opt.upscale_factor, opt.testPath)
 training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=True)
 testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=opt.testBatchSize, shuffle=False)
 
@@ -85,8 +99,9 @@ def test():
 
 def checkpoint(epoch):
     model_out_path = "model_epoch_{}.pth".format(epoch)
-    torch.save(model, model_out_path)
-    print("Checkpoint saved to {}".format(model_out_path))
+    output_dir = join(opt.outputPath, model_out_path)
+    torch.save(model, output_dir)
+    print("Checkpoint saved to {}".format(output_dir))
 
 for epoch in range(1, opt.nEpochs + 1):
     train(epoch)

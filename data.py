@@ -12,7 +12,8 @@ def download_bsd300(dest="dataset"):
 
     if not exists(output_image_dir):
         makedirs(dest)
-        url = "http://www2.eecs.berkeley.edu/Research/Projects/CS/vision/bsds/BSDS300-images.tgz"
+        #url = "http://www2.eecs.berkeley.edu/Research/Projects/CS/vision/bsds/BSDS300-images.tgz"
+        url = ""
         print("downloading url ", url)
 
         data = urllib.request.urlopen(url)
@@ -50,9 +51,11 @@ def target_transform(crop_size):
     ])
 
 
-def get_training_set(upscale_factor):
-    root_dir = download_bsd300()
-    train_dir = join(root_dir, "train")
+def get_training_set(upscale_factor, train_dir):
+    if not train_dir:
+        root_dir = download_bsd300()
+        train_dir = join(root_dir, "train")
+
     crop_size = calculate_valid_crop_size(256, upscale_factor)
 
     return DatasetFromFolder(train_dir,
@@ -60,9 +63,11 @@ def get_training_set(upscale_factor):
                              target_transform=target_transform(crop_size))
 
 
-def get_test_set(upscale_factor):
-    root_dir = download_bsd300()
-    test_dir = join(root_dir, "test")
+def get_test_set(upscale_factor, test_dir):
+    if not test_dir:
+        root_dir = download_bsd300()
+        test_dir = join(root_dir, "test")
+
     crop_size = calculate_valid_crop_size(256, upscale_factor)
 
     return DatasetFromFolder(test_dir,
